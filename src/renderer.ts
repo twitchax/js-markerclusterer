@@ -32,8 +32,8 @@ export class ClusterStats {
     };
   };
 
-  constructor(markers: Marker[], clusters: Cluster[]) {
-    this.markers = { sum: markers.length };
+  constructor(numMarkers: number, clusters: Cluster[]) {
+    this.markers = { sum: numMarkers };
     const clusterMarkerCounts = clusters.map((a) => a.count);
     const clusterMarkerSum = clusterMarkerCounts.reduce((a, b) => a + b, 0);
 
