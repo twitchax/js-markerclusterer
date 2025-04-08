@@ -1,6 +1,6 @@
 {
-  "name": "@googlemaps/markerclusterer",
-  "version": "2.5.4",
+  "name": "@twitchaxorg/markerclusterer",
+  "version": "2.5.5",
   "description": "Creates and manages per-zoom-level clusters for large amounts of markers.",
   "keywords": [
     "cluster",
@@ -67,7 +67,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "^3.1.0",
-    "rollup": "^4.6.1",
+    "rollup": "^4.39.0",
     "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-serve": "^3.0.0",
     "ts-jest": "^29.1.1",
@@ -75,8 +75,7 @@
     "typescript": "5.5"
   },
   "publishConfig": {
-    "access": "public",
-    "registry": "https://wombat-dressing-room.appspot.com"
+    "access": "public"
   },
   "prettier": {
     "trailingComma": "es5"

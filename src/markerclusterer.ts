@@ -53,6 +53,8 @@ export enum MarkerClustererEvents {
   CLUSTERING_END = "clusteringend",
   CLUSTER_CLICK = "click",
   GMP_CLICK = "gmp-click",
+  MARKER_UNCLUSTERED = "markerunclustered",
+  MARKER_CLUSTERED = "marker_clustered",
 }
 
 export const defaultOnClusterClickHandler: onClusterClickHandler = (
@@ -73,12 +75,13 @@ export class MarkerClusterer extends OverlayViewSafe {
   /** @see {@link MarkerClustererOptions.algorithm} */
   protected algorithm: Algorithm;
   protected clusters: Cluster[];
-  protected markers: Marker[];
+  protected markers: Set<Marker>;
   /** @see {@link MarkerClustererOptions.renderer} */
   protected renderer: Renderer;
   /** @see {@link MarkerClustererOptions.map} */
   protected map: google.maps.Map | null = null;
   protected idleListener: google.maps.MapsEventListener | null = null;
+  private markerStates = new Map<Marker, "single" | "clustered">();
 
   constructor({
     map,
@@ -89,7 +92,7 @@ export class MarkerClusterer extends OverlayViewSafe {
     onClusterClick = defaultOnClusterClickHandler,
   }: MarkerClustererOptions) {
     super();
-    this.markers = [...markers];
+    this.markers = new Set(markers);
     this.clusters = [];
 
     this.algorithm = algorithm;
@@ -103,11 +106,11 @@ export class MarkerClusterer extends OverlayViewSafe {
   }
 
   public addMarker(marker: Marker, noDraw?: boolean): void {
-    if (this.markers.includes(marker)) {
+    if (this.markers.has(marker)) {
       return;
     }
 
-    this.markers.push(marker);
+    this.markers.add(marker);
     if (!noDraw) {
       this.render();
     }
@@ -124,15 +127,15 @@ export class MarkerClusterer extends OverlayViewSafe {
   }
 
   public removeMarker(marker: Marker, noDraw?: boolean): boolean {
-    const index = this.markers.indexOf(marker);
+    const exists = this.markers.has(marker);
 
-    if (index === -1) {
+    if (!exists) {
       // Marker is not in our list of markers, so do nothing:
       return false;
     }
 
     MarkerUtils.setMap(marker, null);
-    this.markers.splice(index, 1); // Remove the marker from the list of managed markers
+    this.markers.delete(marker); // Remove the marker from the list of managed markers
 
     if (!noDraw) {
       this.render();
@@ -156,7 +159,7 @@ export class MarkerClusterer extends OverlayViewSafe {
   }
 
   public clearMarkers(noDraw?: boolean): void {
-    this.markers.length = 0;
+    this.markers.clear();
 
     if (!noDraw) {
       this.render();
@@ -175,7 +178,7 @@ export class MarkerClusterer extends OverlayViewSafe {
         this
       );
       const { clusters, changed } = this.algorithm.calculate({
-        markers: this.markers,
+        markers: Array.from(this.markers),
         map,
         mapCanvasProjection: this.getProjection(),
       });
@@ -189,6 +192,18 @@ export class MarkerClusterer extends OverlayViewSafe {
         for (const cluster of clusters) {
           if (cluster.markers.length == 1) {
             singleMarker.add(cluster.markers[0]);
+
+            // Fire an event to notify the marker is unclustered.
+            if (this.markerStates.get(cluster.markers[0]) !== "single") {
+              google.maps.event.trigger(
+                this,
+                MarkerClustererEvents.MARKER_UNCLUSTERED,
+                cluster.markers[0]
+              );
+            }
+
+            // Mark the current state of the marker.
+            this.markerStates.set(cluster.markers[0], "single");
           }
         }
 
@@ -204,6 +219,18 @@ export class MarkerClusterer extends OverlayViewSafe {
               // - was previously rendered because it is from a cluster with 1 marker,
               // - should no more be rendered as it is not in singleMarker.
               MarkerUtils.setMap(cluster.marker, null);
+
+              // Fire an event to notify the marker is clustered.
+              if (this.markerStates.get(cluster.marker) !== "clustered") {
+                google.maps.event.trigger(
+                  this,
+                  MarkerClustererEvents.MARKER_CLUSTERED,
+                  cluster.marker
+                );
+              }
+
+              // Mark the current state of the marker.
+              this.markerStates.set(cluster.marker, "clustered");
             }
           } else {
             // Delay the removal of old group markers to avoid flickering.
@@ -248,7 +275,7 @@ export class MarkerClusterer extends OverlayViewSafe {
 
   protected renderClusters(): void {
     // Generate stats to pass to renderers.
-    const stats = new ClusterStats(this.markers, this.clusters);
+    const stats = new ClusterStats(this.markers.size, this.clusters);
     const map = this.getMap() as google.maps.Map;
 
     this.clusters.forEach((cluster) => {
