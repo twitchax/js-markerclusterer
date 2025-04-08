@@ -54,7 +54,7 @@ export enum MarkerClustererEvents {
   CLUSTER_CLICK = "click",
   GMP_CLICK = "gmp-click",
   MARKER_UNCLUSTERED = "markerunclustered",
-  MARKER_CLUSTERED = "marker_clustered",
+  MARKER_CLUSTERED = "markerclustered",
 }
 
 export const defaultOnClusterClickHandler: onClusterClickHandler = (
