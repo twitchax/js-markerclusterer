@@ -24,7 +24,6 @@ import { SuperClusterOptions } from "./supercluster";
 import SuperCluster, { ClusterFeature } from "supercluster";
 import { MarkerUtils, Marker } from "../marker-utils";
 import { Cluster } from "../cluster";
-import { getPaddedViewport } from "./utils";
 import { deepEqual } from "fast-equals";
 import { assertNotNull } from "../utils";
 
@@ -141,13 +140,17 @@ export class SuperClusterViewportAlgorithm extends AbstractViewportAlgorithm {
     assertNotNull(mapZoom);
     assertNotNull(mapBounds);
 
+    const visibleBoundsNorthEast = mapBounds.getNorthEast().toJSON();
+    const visibleBoundsSouthWest = mapBounds.getSouthWest().toJSON();
+
     return {
       zoom: Math.round(mapZoom),
-      view: getPaddedViewport(
-        mapBounds,
-        input.mapCanvasProjection,
-        this.viewportPadding
-      ),
+      view: [
+        visibleBoundsSouthWest.lng,
+        visibleBoundsSouthWest.lat,
+        visibleBoundsNorthEast.lng,
+        visibleBoundsNorthEast.lat,
+      ],
     };
   }
 }
